@@ -1,26 +1,174 @@
 @import "tailwindcss";
+@config "../../tailwind.config.js";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 215 72% 16%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 45 100% 53%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 45 100% 53%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 122 39% 34%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 27 94% 48%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 215 72% 16%;
+
+    --radius: 0.65rem;
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 210 20% 98%;
+
+    --card: 222 47% 9%;
+    --card-foreground: 210 20% 98%;
+
+    --popover: 222 47% 9%;
+    --popover-foreground: 210 20% 98%;
+
+    --primary: 45 100% 53%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 215 72% 16%;
+    --secondary-foreground: 210 20% 98%;
+
+    --muted: 222 30% 14%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 45 100% 53%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 122 45% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 27 94% 55%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 222 30% 18%;
+    --input: 222 30% 18%;
+    --ring: 45 100% 53%;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .hff-gradient-primary {
+    background: linear-gradient(135deg, #0b2545 0%, #0a1f44 100%);
+  }
+
+  .hff-gradient-accent {
+    background: linear-gradient(135deg, #ffcd11 0%, #f5b800 100%);
+  }
+
+  .hff-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .hff-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .hff-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 4px;
+  }
+
+  .hff-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+
+  .hff-glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .dark .hff-glass {
+    background: rgba(15, 23, 42, 0.7);
+  }
+}
+
+@import "../styles/animations.css";
+@import "../styles/scrollbar.css";
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+@keyframes sidebar-item-slide {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.sidebar-item-enter {
+  animation: sidebar-item-slide 0.2s ease-out;
 }
