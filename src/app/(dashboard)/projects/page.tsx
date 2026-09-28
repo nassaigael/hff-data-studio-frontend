@@ -11,9 +11,20 @@ import { ProjectStatistics } from "@/components/projects/project-statistics";
 import { RecentActivity } from "@/components/projects/recent-activity";
 import { ProjectListSkeleton } from "@/components/projects/project-list-skeleton";
 import { Pagination } from "@/components/projects/pagination";
-import { useProjects, useProjectStatistics } from "@/hooks/use-projects";
+import { ProjectFormDialog } from "@/components/projects/project-form-dialog";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import {
+  useProjects,
+  useProjectStatistics,
+  useCreateProject,
+  useUpdateProject,
+  useArchiveProject,
+  useRestoreProject,
+  useUpdateProjectStatus,
+} from "@/hooks/use-projects";
 import { useUIStore } from "@/stores/ui-store";
 import { cn } from "@/lib/utils/cn";
+import type { ProjectFormData } from "@/lib/validators/project";
 import type { ProjectResponse, ProjectStatus } from "@/types/project";
 
 type StatusFilter = "all" | ProjectStatus;
@@ -35,12 +46,11 @@ export default function ProjectsPage() {
   const [showActivity, setShowActivity] = useState(true);
   const [page, setPage] = useState(0);
 
-  const setHeaderActions = useUIStore((state) => state.setHeaderActions);
+  const [formDialogOpen, setFormDialogOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<ProjectResponse | null>(null);
+  const [archiveTarget, setArchiveTarget] = useState<ProjectResponse | null>(null);
 
-  useEffect(() => {
-    setHeaderActions(null);
-    return () => setHeaderActions(null);
-  }, [setHeaderActions]);
+  const setHeaderActions = useUIStore((state) => state.setHeaderActions);
 
   const { data, isLoading, isError } = useProjects({
     page,
@@ -49,6 +59,17 @@ export default function ProjectsPage() {
   });
 
   const { data: statistics } = useProjectStatistics();
+
+  const createProject = useCreateProject();
+  const updateProject = useUpdateProject();
+  const archiveProject = useArchiveProject();
+  const restoreProject = useRestoreProject();
+  const updateStatus = useUpdateProjectStatus();
+
+  useEffect(() => {
+    setHeaderActions(null);
+    return () => setHeaderActions(null);
+  }, [setHeaderActions]);
 
   const projects = data?.content ?? [];
 
@@ -78,6 +99,69 @@ export default function ProjectsPage() {
     setCategoryFilter("all");
     setCreatorFilter("all");
   };
+
+  const openCreateDialog = () => {
+    setEditingProject(null);
+    setFormDialogOpen(true);
+  };
+
+  const handleFormSubmit = async (formData: ProjectFormData) => {
+    try {
+      if (editingProject) {
+        await updateProject.mutateAsync({
+          id: editingProject.projectId,
+          data: {
+            projectName: formData.projectName,
+            description: formData.description || undefined,
+            status: formData.status,
+          },
+        });
+      } else {
+        await createProject.mutateAsync({
+          projectName: formData.projectName,
+          description: formData.description || undefined,
+          status: formData.status,
+        });
+      }
+      setFormDialogOpen(false);
+      setEditingProject(null);
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
+  const handleEdit = (project: ProjectResponse) => {
+    setEditingProject(project);
+    setFormDialogOpen(true);
+  };
+
+  const handleArchive = (project: ProjectResponse) => {
+    setArchiveTarget(project);
+  };
+
+  const confirmArchive = async () => {
+    if (!archiveTarget) return;
+    try {
+      await archiveProject.mutateAsync(archiveTarget.projectId);
+      if (selectedProject?.projectId === archiveTarget.projectId) {
+        setSelectedProject(null);
+      }
+      setArchiveTarget(null);
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
+  const handleRestore = async (project: ProjectResponse) => {
+    await restoreProject.mutateAsync(project.projectId);
+  };
+
+  const handleChangeStatus = async (project: ProjectResponse, status: ProjectStatus) => {
+    await updateStatus.mutateAsync({ id: project.projectId, status });
+  };
+
+  const isFormSubmitting = createProject.isPending || updateProject.isPending;
+  const isArchiveLoading = archiveProject.isPending;
 
   return (
     <div className="flex h-[calc(100vh-7rem)] gap-6 overflow-hidden">
@@ -116,7 +200,10 @@ export default function ProjectsPage() {
             </TabsList>
           </Tabs>
 
-          <Button className="shrink-0 gap-2 rounded-xl bg-hff-yellow text-hff-navy shadow-lg shadow-hff-yellow/30 transition-all hover:bg-hff-yellow/90 hover:shadow-xl hover:shadow-hff-yellow/40">
+          <Button
+            onClick={openCreateDialog}
+            className="shrink-0 gap-2 rounded-xl bg-hff-yellow text-hff-navy shadow-lg shadow-hff-yellow/30 transition-all hover:bg-hff-yellow/90 hover:shadow-xl hover:shadow-hff-yellow/40"
+          >
             <Plus className="h-4 w-4" />
             Nouveau projet
           </Button>
@@ -156,6 +243,10 @@ export default function ProjectsPage() {
               projects={filteredProjects}
               selectedProjectId={selectedProject?.projectId}
               onSelect={setSelectedProject}
+              onEdit={handleEdit}
+              onArchive={handleArchive}
+              onRestore={handleRestore}
+              onChangeStatus={handleChangeStatus}
             />
           )}
         </div>
@@ -212,6 +303,32 @@ export default function ProjectsPage() {
           )}
         </div>
       )}
+
+      <ProjectFormDialog
+        open={formDialogOpen}
+        onOpenChange={(open) => {
+          setFormDialogOpen(open);
+          if (!open) setEditingProject(null);
+        }}
+        project={editingProject}
+        isSubmitting={isFormSubmitting}
+        onSubmit={handleFormSubmit}
+      />
+
+      <ConfirmDialog
+        open={Boolean(archiveTarget)}
+        onOpenChange={(open) => !open && setArchiveTarget(null)}
+        title="Archiver ce projet ?"
+        description={
+          archiveTarget
+            ? `Le projet "${archiveTarget.projectName}" sera déplacé dans les archives. Vous pourrez le restaurer à tout moment.`
+            : ""
+        }
+        confirmLabel="Archiver"
+        variant="destructive"
+        isLoading={isArchiveLoading}
+        onConfirm={confirmArchive}
+      />
     </div>
   );
 }

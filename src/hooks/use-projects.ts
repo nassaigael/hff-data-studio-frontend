@@ -123,6 +123,7 @@ export function useUpdateProjectStatus() {
             projectsApi.updateStatus(id, status),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: projectKeys.statistics() });
             toast.success("Statut mis à jour");
         },
         onError: (error) => {
