@@ -172,3 +172,19 @@
 .sidebar-item-enter {
   animation: sidebar-item-slide 0.2s ease-out;
 }
+
+@keyframes hff-blink {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 205, 17, 0.7);
+  }
+
+  50% {
+    box-shadow: 0 0 0 12px rgba(255, 205, 17, 0);
+  }
+}
+
+.hff-blink {
+  animation: hff-blink 2s ease-in-out infinite;
+}

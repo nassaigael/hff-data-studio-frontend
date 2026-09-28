@@ -19,6 +19,7 @@ interface HeaderProps {
 
 export function Header({ title, subtitle, showBreadcrumbs = false }: HeaderProps) {
   const setMobileOpen = useUIStore((state) => state.setMobileSidebarOpen);
+  const headerActions = useUIStore((state) => state.headerActions);
   const user = useAuthStore((state) => state.user);
   const { logout } = useAuth();
 
@@ -58,6 +59,12 @@ export function Header({ title, subtitle, showBreadcrumbs = false }: HeaderProps
           )
         )}
       </div>
+
+      {headerActions && (
+        <div className="hidden shrink-0 items-center gap-2 lg:flex">
+          {headerActions}
+        </div>
+      )}
 
       <div className="hidden max-w-md flex-1 md:block lg:max-w-lg">
         <SearchCommand />
