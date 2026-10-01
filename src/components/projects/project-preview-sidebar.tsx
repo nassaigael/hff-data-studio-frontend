@@ -1,10 +1,12 @@
 "use client";
 
-import { DollarSign, ExternalLink, X } from "lucide-react";
+import { ArrowRight, ExternalLink, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatDateTime } from "@/lib/utils/format";
-import type { ProjectResponse } from "@/types/project";
+import type { ProjectResponse, ProjectStatus } from "@/types/project";
+import { PROJECT_STATUS_LABELS } from "@/types/project";
+import { cn } from "@/lib/utils/cn";
 
 interface ProjectPreviewSidebarProps {
     project: ProjectResponse | null;
@@ -20,6 +22,12 @@ const CATEGORY_ICON_COLORS: Record<string, string> = {
     Clients: "bg-teal-500/15 text-teal-600",
     Stratégie: "bg-hff-navy/10 text-hff-navy",
     Archive: "bg-muted text-muted-foreground",
+};
+
+const STATUS_STYLES: Record<ProjectStatus, string> = {
+    IN_PROGRESS: "bg-hff-blue/15 text-hff-blue",
+    COMPLETED: "bg-success/15 text-success",
+    ARCHIVED: "bg-muted text-muted-foreground",
 };
 
 export function ProjectPreviewSidebar({ project, onClose }: ProjectPreviewSidebarProps) {
@@ -48,16 +56,27 @@ export function ProjectPreviewSidebar({ project, onClose }: ProjectPreviewSideba
 
                 <div className="mb-4 flex items-start gap-3">
                     <div
-                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${iconColor}`}
+                        className={cn(
+                            "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl",
+                            iconColor
+                        )}
                     >
-                        <DollarSign className="h-6 w-6" strokeWidth={2} />
+                        <ExternalLink className="h-6 w-6" />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <h4 className="truncate text-sm font-bold text-foreground">
+                        <h4
+                            className="truncate text-sm font-bold text-foreground"
+                            title={project.projectName}
+                        >
                             {project.projectName}
                         </h4>
-                        <span className="mt-1 inline-flex rounded-full bg-hff-blue/15 px-2 py-0.5 text-[10px] font-semibold text-hff-blue">
-                            En cours
+                        <span
+                            className={cn(
+                                "mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                                STATUS_STYLES[project.status]
+                            )}
+                        >
+                            {PROJECT_STATUS_LABELS[project.status]}
                         </span>
                     </div>
                 </div>
@@ -77,7 +96,7 @@ export function ProjectPreviewSidebar({ project, onClose }: ProjectPreviewSideba
                         <p className="mb-1.5 text-xs font-medium text-muted-foreground">
                             Description
                         </p>
-                        <p className="text-xs leading-relaxed text-foreground/80 line-clamp-4">
+                        <p className="line-clamp-4 text-xs leading-relaxed text-foreground/80">
                             {project.description}
                         </p>
                     </div>
@@ -88,10 +107,14 @@ export function ProjectPreviewSidebar({ project, onClose }: ProjectPreviewSideba
                         onClick={() => router.push(`/projects/${project.projectId}`)}
                         className="w-full gap-2"
                     >
-                        <ExternalLink className="h-4 w-4" />
                         Ouvrir le projet
+                        <ArrowRight className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" className="w-full">
+                    <Button
+                        variant="outline"
+                        onClick={() => router.push(`/projects/${project.projectId}`)}
+                        className="w-full"
+                    >
                         Voir les détails
                     </Button>
                 </div>
@@ -104,7 +127,12 @@ function DetailRow({ label, value }: { label: string; value: string }) {
     return (
         <div className="flex items-start justify-between gap-2">
             <dt className="text-muted-foreground">{label}</dt>
-            <dd className="truncate text-right font-medium text-foreground">{value}</dd>
+            <dd
+                className="truncate text-right font-medium text-foreground"
+                title={value}
+            >
+                {value}
+            </dd>
         </div>
     );
 }
