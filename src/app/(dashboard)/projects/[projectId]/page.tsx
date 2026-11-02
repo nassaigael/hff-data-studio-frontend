@@ -22,6 +22,7 @@ import {
     useArchiveProject,
     useRestoreProject,
 } from "@/hooks/use-projects";
+import { useBreadcrumbLabel } from "@/providers/breadcrumbs-provider";
 import type { ProjectFormData } from "@/lib/validators/project";
 
 const TABS = [
@@ -42,6 +43,8 @@ export default function ProjectDetailPage() {
 
     const [formDialogOpen, setFormDialogOpen] = useState(false);
     const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+
+    useBreadcrumbLabel(projectId, project?.projectName);
 
     const handleFormSubmit = async (formData: ProjectFormData) => {
         if (!project) return;
@@ -103,7 +106,7 @@ export default function ProjectDetailPage() {
     }
 
     return (
-        <div className="h-[calc(100vh-7rem)] overflow-auto hff-scrollbar">
+        <div className="hff-scrollbar h-[calc(100vh-7rem)] overflow-auto">
             <div className="space-y-6 pb-6">
                 <ProjectHeader
                     project={project}

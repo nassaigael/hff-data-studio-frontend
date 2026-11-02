@@ -10,6 +10,7 @@ import { Breadcrumbs } from "./breadcrumbs";
 import { useUIStore } from "@/stores/ui-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAuth } from "@/hooks/use-auth";
+import { useBreadcrumbs } from "@/providers/breadcrumbs-provider";
 
 interface HeaderProps {
   title?: string;
@@ -22,6 +23,7 @@ export function Header({ title, subtitle, showBreadcrumbs = false }: HeaderProps
   const headerActions = useUIStore((state) => state.headerActions);
   const user = useAuthStore((state) => state.user);
   const { logout } = useAuth();
+  const { dynamicLabels } = useBreadcrumbs();
 
   const handleLogout = async () => {
     try {
@@ -45,7 +47,7 @@ export function Header({ title, subtitle, showBreadcrumbs = false }: HeaderProps
 
       <div className="hidden min-w-0 flex-1 lg:block">
         {showBreadcrumbs ? (
-          <Breadcrumbs />
+          <Breadcrumbs dynamicLabels={dynamicLabels} />
         ) : (
           title && (
             <div className="min-w-0">

@@ -16,7 +16,12 @@ const ROUTE_LABELS: Record<string, string> = {
     profile: "Profil",
 };
 
-export function Breadcrumbs({ className }: { className?: string }) {
+interface BreadcrumbsProps {
+    dynamicLabels?: Record<string, string>;
+    className?: string;
+}
+
+export function Breadcrumbs({ dynamicLabels, className }: BreadcrumbsProps) {
     const pathname = usePathname();
     const segments = pathname.split("/").filter(Boolean);
 
@@ -24,13 +29,19 @@ export function Breadcrumbs({ className }: { className?: string }) {
 
     const crumbs = segments.map((segment, index) => {
         const href = "/" + segments.slice(0, index + 1).join("/");
-        const label = ROUTE_LABELS[segment] ?? segment;
+        const dynamicLabel = dynamicLabels?.[segment];
+        const staticLabel = ROUTE_LABELS[segment];
+        const isId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment);
+        const label = dynamicLabel ?? staticLabel ?? (isId ? "Détails" : segment);
         const isLast = index === segments.length - 1;
         return { href, label, isLast };
     });
 
     return (
-        <nav aria-label="Fil d'Ariane" className={cn("flex items-center gap-1.5 text-sm", className)}>
+        <nav
+            aria-label="Fil d'Ariane"
+            className={cn("flex items-center gap-1.5 text-sm", className)}
+        >
             <Link
                 href="/"
                 className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -40,16 +51,21 @@ export function Breadcrumbs({ className }: { className?: string }) {
             </Link>
 
             {crumbs.map((crumb) => (
-                <div key={crumb.href} className="flex items-center gap-1.5">
-                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40" />
+                <div key={crumb.href} className="flex min-w-0 items-center gap-1.5">
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40" />
                     {crumb.isLast ? (
-                        <span className="font-medium text-foreground" aria-current="page">
+                        <span
+                            className="max-w-[240px] truncate font-medium text-foreground"
+                            aria-current="page"
+                            title={crumb.label}
+                        >
                             {crumb.label}
                         </span>
                     ) : (
                         <Link
                             href={crumb.href}
-                            className="rounded-md px-1.5 py-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            className="max-w-[180px] truncate rounded-md px-1.5 py-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            title={crumb.label}
                         >
                             {crumb.label}
                         </Link>

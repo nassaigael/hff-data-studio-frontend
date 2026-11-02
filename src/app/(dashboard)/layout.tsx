@@ -4,11 +4,18 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileSidebar } from "@/components/layout/mobile-sidebar";
+import { BreadcrumbsContextProvider } from "@/providers/breadcrumbs-provider";
 
 const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   "/": { title: "Accueil", subtitle: "Vue d'ensemble de votre activité" },
-  "/projects": { title: "Projets", subtitle: "Gérez et suivez tous vos projets d'analyse" },
-  "/datasets": { title: "Données", subtitle: "Gérez et consultez vos jeux de données" },
+  "/projects": {
+    title: "Projets",
+    subtitle: "Gérez et suivez tous vos projets d'analyse",
+  },
+  "/datasets": {
+    title: "Données",
+    subtitle: "Gérez et consultez vos jeux de données",
+  },
   "/analyses": { title: "Analyses", subtitle: "Explorez et analysez vos données" },
   "/reports": { title: "Rapports", subtitle: "Consultez et téléchargez vos rapports" },
   "/exports": { title: "Exports", subtitle: "Gérez et téléchargez vos exports" },
@@ -19,21 +26,23 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const pageInfo = PAGE_TITLES[pathname] ?? { title: "HFF Data Studio", subtitle: "" };
+  const pageInfo = PAGE_TITLES[pathname];
   const showBreadcrumbs = pathname !== "/" && pathname.split("/").filter(Boolean).length > 1;
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-      <MobileSidebar />
-      <div className="flex flex-1 flex-col">
-        <Header
-          title={pageInfo.title}
-          subtitle={pageInfo.subtitle}
-          showBreadcrumbs={showBreadcrumbs}
-        />
-        <main className="flex-1 p-4 lg:p-6">{children}</main>
+    <BreadcrumbsContextProvider>
+      <div className="flex min-h-screen bg-background">
+        <Sidebar />
+        <MobileSidebar />
+        <div className="flex flex-1 flex-col">
+          <Header
+            title={pageInfo?.title}
+            subtitle={pageInfo?.subtitle}
+            showBreadcrumbs={showBreadcrumbs}
+          />
+          <main className="flex-1 p-4 lg:p-6">{children}</main>
+        </div>
       </div>
-    </div>
+    </BreadcrumbsContextProvider>
   );
 }
