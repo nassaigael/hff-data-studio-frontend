@@ -17,7 +17,6 @@ import {
 import { cn } from "@/lib/utils/cn";
 import { formatDate, formatNumber } from "@/lib/utils/format";
 import {
-    FILE_FORMAT_LABELS,
     PROCESSING_STATUS_LABELS,
     type DatasetResponse,
     type FileProcessingStatus,
@@ -48,7 +47,7 @@ const FORMAT_ICONS: Record<FileType, typeof FileText> = {
     CSV: FileSpreadsheet,
     XLSX: FileSpreadsheet,
     EXCEL: FileSpreadsheet,
-    SQL: Database,
+    SQL: FileCode,
     JSON: FileJson,
     PNG: FileText,
     SVG: FileText,
@@ -58,37 +57,24 @@ const FORMAT_ICONS: Record<FileType, typeof FileText> = {
 };
 
 const FORMAT_COLORS: Record<FileType, string> = {
-    CSV: "bg-success/15 text-success",
-    XLSX: "bg-hff-blue/15 text-hff-blue",
-    EXCEL: "bg-hff-blue/15 text-hff-blue",
-    SQL: "bg-purple-500/15 text-purple-600",
-    JSON: "bg-orange-500/15 text-orange-600",
-    PNG: "bg-pink-500/15 text-pink-600",
-    SVG: "bg-pink-500/15 text-pink-600",
-    PDF: "bg-red-500/15 text-red-600",
-    HTML: "bg-yellow-500/15 text-yellow-600",
-    ZIP: "bg-muted text-muted-foreground",
-};
-
-const FORMAT_BADGE_BORDERS: Record<FileType, string> = {
-    CSV: "ring-success/30",
-    XLSX: "ring-hff-blue/30",
-    EXCEL: "ring-hff-blue/30",
-    SQL: "ring-purple-500/30",
-    JSON: "ring-orange-500/30",
-    PNG: "ring-pink-500/30",
-    SVG: "ring-pink-500/30",
-    PDF: "ring-red-500/30",
-    HTML: "ring-yellow-500/30",
-    ZIP: "ring-border",
+    CSV: "bg-success/10 text-success ring-success/20",
+    XLSX: "bg-hff-blue/10 text-hff-blue ring-hff-blue/20",
+    EXCEL: "bg-hff-blue/10 text-hff-blue ring-hff-blue/20",
+    SQL: "bg-purple-500/10 text-purple-600 ring-purple-500/20",
+    JSON: "bg-orange-500/10 text-orange-600 ring-orange-500/20",
+    PNG: "bg-pink-500/10 text-pink-600 ring-pink-500/20",
+    SVG: "bg-pink-500/10 text-pink-600 ring-pink-500/20",
+    PDF: "bg-red-500/10 text-red-600 ring-red-500/20",
+    HTML: "bg-yellow-500/10 text-yellow-600 ring-yellow-500/20",
+    ZIP: "bg-muted text-muted-foreground ring-border",
 };
 
 const STATUS_STYLES: Record<FileProcessingStatus, string> = {
     RECEIVED: "bg-muted text-muted-foreground ring-1 ring-inset ring-border",
-    ANALYZING: "bg-warning/15 text-warning ring-1 ring-inset ring-warning/20",
-    EXPLORED: "bg-hff-blue/15 text-hff-blue ring-1 ring-inset ring-hff-blue/20",
-    CLEANED: "bg-success/15 text-success ring-1 ring-inset ring-success/20",
-    ERROR: "bg-destructive/15 text-destructive ring-1 ring-inset ring-destructive/20",
+    ANALYZING: "bg-warning/10 text-warning ring-1 ring-inset ring-warning/20",
+    EXPLORED: "bg-hff-blue/10 text-hff-blue ring-1 ring-inset ring-hff-blue/20",
+    CLEANED: "bg-success/10 text-success ring-1 ring-inset ring-success/20",
+    ERROR: "bg-destructive/10 text-destructive ring-1 ring-inset ring-destructive/20",
 };
 
 const STATUS_ICONS: Record<FileProcessingStatus, typeof Check> = {
@@ -107,56 +93,32 @@ function getStatus(dataset: DatasetResponse): FileProcessingStatus {
     return "EXPLORED";
 }
 
-function FormatBadge({ format }: { format: FileType }) {
-    const Icon = FORMAT_ICONS[format] ?? FileText;
-    const colorClass = FORMAT_COLORS[format] ?? "bg-muted text-muted-foreground";
-    const borderClass = FORMAT_BADGE_BORDERS[format] ?? "ring-border";
-    const label = FILE_FORMAT_LABELS[format] ?? format;
-
-    return (
-        <span
-            className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold ring-1 ring-inset",
-                colorClass,
-                borderClass
-            )}
-        >
-            <Icon className="h-3 w-3" strokeWidth={2.5} />
-            {label}
-        </span>
-    );
-}
-
 function EmptyRow({ index }: { index: number }) {
     return (
-        <tr
-            className="border-b border-border/40 last:border-0"
-            aria-hidden="true"
-            data-index={index}
-        >
-            <td className="px-4 py-3">
-                <div className="h-9 w-full max-w-50 rounded-xl bg-muted/20" />
+        <tr className="border-b border-border/30 last:border-0" aria-hidden="true" data-index={index}>
+            <td className="px-4 py-4">
+                <div className="h-8 w-3/4 max-w-50 rounded-md bg-muted/30" />
             </td>
-            <td className="px-4 py-3">
-                <div className="h-3 w-20 rounded bg-muted/20" />
+            <td className="px-4 py-4">
+                <div className="h-3 w-20 rounded bg-muted/30" />
             </td>
-            <td className="px-4 py-3">
-                <div className="h-6 w-20 rounded-md bg-muted/20" />
+            <td className="px-4 py-4">
+                <div className="h-6 w-16 rounded-md bg-muted/30" />
             </td>
-            <td className="px-4 py-3">
-                <div className="mx-auto h-3 w-14 rounded bg-muted/20" />
+            <td className="px-4 py-4">
+                <div className="mx-auto h-3 w-10 rounded bg-muted/30" />
             </td>
-            <td className="px-4 py-3">
-                <div className="mx-auto h-3 w-10 rounded bg-muted/20" />
+            <td className="px-4 py-4">
+                <div className="mx-auto h-3 w-10 rounded bg-muted/30" />
             </td>
-            <td className="px-4 py-3">
-                <div className="h-5 w-16 rounded-full bg-muted/20" />
+            <td className="px-4 py-4">
+                <div className="h-5 w-20 rounded-full bg-muted/30" />
             </td>
-            <td className="px-4 py-3">
-                <div className="h-3 w-20 rounded bg-muted/20" />
+            <td className="px-4 py-4">
+                <div className="h-3 w-20 rounded bg-muted/30" />
             </td>
-            <td className="px-2 py-3">
-                <div className="h-4 w-4 rounded bg-muted/20" />
+            <td className="px-2 py-4">
+                <div className="h-4 w-4 rounded bg-muted/30" />
             </td>
         </tr>
     );
@@ -176,40 +138,40 @@ export function DatasetTable({
     const missingRows = Math.max(0, minimumRows - datasets.length);
 
     return (
-        <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+        <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
             <div className="hff-scrollbar flex-1 overflow-auto">
-                <table className="w-full table-fixed">
+                <table className="w-full table-fixed text-left text-sm">
                     <colgroup>
-                        <col className="w-62.5" />
+                        <col className="w-70" />
                         <col className="w-35" />
+                        <col className="w-27.5" />
+                        <col className="w-20" />
+                        <col className="w-20" />
                         <col className="w-30" />
-                        <col className="w-22.5" />
-                        <col className="w-22.5" />
                         <col className="w-30" />
-                        <col className="w-32.5" />
                         <col className="w-12" />
                     </colgroup>
-                    <thead className="sticky top-0 z-10">
-                        <tr className="border-b border-border/60 bg-muted/60 backdrop-blur-md">
-                            <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                                Nom du jeu de données
+                    <thead className="sticky top-0 z-10 bg-muted/40 backdrop-blur-md">
+                        <tr className="border-b border-border/50">
+                            <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                Jeu de données
                             </th>
-                            <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                                 Projet
                             </th>
-                            <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                                 Source
                             </th>
-                            <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                                 Lignes
                             </th>
-                            <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                                 Colonnes
                             </th>
-                            <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                                 Statut
                             </th>
-                            <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                                 Mise à jour
                             </th>
                             <th className="px-2 py-3" />
@@ -226,20 +188,21 @@ export function DatasetTable({
                             return (
                                 <tr
                                     key={dataset.datasetId}
-                                    onClick={() => onSelect?.(dataset)}
+                                    onClick={() => {
+                                        onSelect?.(dataset);
+                                        onView?.(dataset);
+                                    }}
                                     className={cn(
-                                        "group cursor-pointer border-b border-border/40 transition-all last:border-0",
-                                        isSelected
-                                            ? "bg-hff-navy/4 hover:bg-hff-navy/6"
-                                            : "hover:bg-muted/40"
+                                        "group cursor-pointer border-b border-border/30 transition-all last:border-0",
+                                        isSelected ? "bg-muted/50" : "hover:bg-muted/30"
                                     )}
                                 >
-                                    <td className="px-4 py-3">
-                                        <div className="flex min-w-0 items-center gap-2.5">
+                                    <td className="px-4 py-3.5">
+                                        <div className="flex min-w-0 items-center gap-3">
                                             <div
                                                 className={cn(
-                                                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform group-hover:scale-105",
-                                                    FORMAT_COLORS[format] ?? "bg-muted text-muted-foreground"
+                                                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset transition-transform group-hover:scale-105",
+                                                    FORMAT_COLORS[format] ?? "bg-muted text-muted-foreground ring-border"
                                                 )}
                                             >
                                                 <FormatIcon className="h-4 w-4" strokeWidth={2.5} />
@@ -258,7 +221,7 @@ export function DatasetTable({
                                         </div>
                                     </td>
 
-                                    <td className="px-4 py-3">
+                                    <td className="px-4 py-3.5">
                                         <span
                                             className="truncate text-xs font-medium text-hff-blue hover:underline"
                                             title={dataset.projectName}
@@ -267,26 +230,33 @@ export function DatasetTable({
                                         </span>
                                     </td>
 
-                                    <td className="px-4 py-3">
-                                        <FormatBadge format={format} />
+                                    <td className="px-4 py-3.5">
+                                        <span
+                                            className={cn(
+                                                "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-bold ring-1 ring-inset",
+                                                FORMAT_COLORS[format] ?? "bg-muted text-muted-foreground ring-border"
+                                            )}
+                                        >
+                                            {format}
+                                        </span>
                                     </td>
 
-                                    <td className="px-4 py-3 text-center">
-                                        <span className="text-xs font-semibold text-foreground">
+                                    <td className="px-4 py-3.5 text-center">
+                                        <span className="text-xs font-bold text-foreground">
                                             {formatNumber(dataset.rowCount)}
                                         </span>
                                     </td>
 
-                                    <td className="px-4 py-3 text-center">
-                                        <span className="text-xs font-semibold text-foreground">
+                                    <td className="px-4 py-3.5 text-center">
+                                        <span className="text-xs font-bold text-foreground">
                                             {formatNumber(dataset.columnCount)}
                                         </span>
                                     </td>
 
-                                    <td className="px-4 py-3">
+                                    <td className="px-4 py-3.5">
                                         <span
                                             className={cn(
-                                                "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                                                "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10px] font-bold",
                                                 STATUS_STYLES[status]
                                             )}
                                         >
@@ -295,13 +265,13 @@ export function DatasetTable({
                                         </span>
                                     </td>
 
-                                    <td className="px-4 py-3">
+                                    <td className="px-4 py-3.5">
                                         <span className="text-xs font-medium text-muted-foreground">
                                             {formatDate(dataset.createdAt)}
                                         </span>
                                     </td>
 
-                                    <td className="px-2 py-3">
+                                    <td className="px-2 py-3.5">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                                                 <button
@@ -316,21 +286,21 @@ export function DatasetTable({
                                                 className="w-56"
                                                 onClick={(e) => e.stopPropagation()}
                                             >
-                                                <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                                <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                                                     Actions
                                                 </DropdownMenuLabel>
                                                 <DropdownMenuItem
                                                     onClick={() => onView?.(dataset)}
-                                                    className="cursor-pointer"
+                                                    className="cursor-pointer text-xs"
                                                 >
-                                                    <Eye className="mr-2 h-4 w-4" />
+                                                    <Eye className="mr-2 h-4 w-4 text-muted-foreground" />
                                                     Voir les données
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
                                                     onClick={() => onRename?.(dataset)}
-                                                    className="cursor-pointer"
+                                                    className="cursor-pointer text-xs"
                                                 >
-                                                    <Pencil className="mr-2 h-4 w-4" />
+                                                    <Pencil className="mr-2 h-4 w-4 text-muted-foreground" />
                                                     Renommer
                                                 </DropdownMenuItem>
 
@@ -339,17 +309,17 @@ export function DatasetTable({
                                                 {dataset.isCleaned ? (
                                                     <DropdownMenuItem
                                                         onClick={() => onMarkUncleaned?.(dataset)}
-                                                        className="cursor-pointer"
+                                                        className="cursor-pointer text-xs"
                                                     >
-                                                        <X className="mr-2 h-4 w-4" />
+                                                        <X className="mr-2 h-4 w-4 text-muted-foreground" />
                                                         Marquer non nettoyé
                                                     </DropdownMenuItem>
                                                 ) : (
                                                     <DropdownMenuItem
                                                         onClick={() => onMarkCleaned?.(dataset)}
-                                                        className="cursor-pointer"
+                                                        className="cursor-pointer text-xs"
                                                     >
-                                                        <Check className="mr-2 h-4 w-4" />
+                                                        <Check className="mr-2 h-4 w-4 text-muted-foreground" />
                                                         Marquer nettoyé
                                                     </DropdownMenuItem>
                                                 )}
@@ -358,7 +328,7 @@ export function DatasetTable({
 
                                                 <DropdownMenuItem
                                                     onClick={() => onDelete?.(dataset)}
-                                                    className="cursor-pointer text-destructive focus:text-destructive"
+                                                    className="cursor-pointer text-xs text-destructive focus:text-destructive"
                                                 >
                                                     <Trash2 className="mr-2 h-4 w-4" />
                                                     Supprimer
