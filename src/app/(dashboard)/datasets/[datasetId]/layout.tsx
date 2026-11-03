@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -17,9 +17,11 @@ import {
     Play,
     Share2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useDataset, useDatasetColumns } from "@/hooks/use-datasets";
 import { useUIStore } from "@/stores/ui-store";
+import { apiClient } from "@/lib/api/client";
 import { cn } from "@/lib/utils/cn";
 import { formatNumber } from "@/lib/utils/format";
 import { FILE_FORMAT_LABELS, type FileType } from "@/types/dataset";
@@ -68,9 +70,46 @@ export default function DatasetLayout({ children, params }: LayoutProps) {
     const pathname = usePathname();
     const router = useRouter();
     const isMaximized = useUIStore((state) => state.isDatasetMaximized);
+    const [isDownloading, setIsDownloading] = useState(false);
 
     const { data: dataset, isLoading: loadingDataset, isError } = useDataset(datasetId);
     const { data: columns, isLoading: loadingColumns } = useDatasetColumns(datasetId);
+
+    const handleDownload = async () => {
+        if (!dataset?.fileId || isDownloading) return;
+        setIsDownloading(true);
+        try {
+            const response = await apiClient.get(`/files/${dataset.fileId}/download`, {
+                responseType: "blob",
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", dataset.fileName);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            toast.success("Téléchargement démarré");
+        } catch (error) {
+            toast.error("Erreur lors du téléchargement");
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
+    const handleShare = async () => {
+        try {
+            await navigator.clipboard.writeText(window.location.href);
+            toast.success("Lien copié dans le presse-papiers");
+        } catch (error) {
+            toast.error("Impossible de copier le lien");
+        }
+    };
+
+    const handleAnalyze = () => {
+        router.push(`/analyses?datasetId=${datasetId}`);
+    };
 
     if (loadingDataset) {
         return (
@@ -165,15 +204,27 @@ export default function DatasetLayout({ children, params }: LayoutProps) {
 
                         <div className="flex flex-wrap items-center gap-4 xl:flex-nowrap">
                             <div className="flex items-center gap-2">
-                                <Button variant="outline" className="h-9 gap-2 rounded-xl bg-background/50 text-xs">
-                                    <Download className="h-4 w-4" />
+                                <Button
+                                    variant="outline"
+                                    className="h-9 gap-2 rounded-xl bg-background/50 text-xs"
+                                    onClick={handleDownload}
+                                    disabled={isDownloading || !dataset.fileId}
+                                >
+                                    {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                                     Télécharger
                                 </Button>
-                                <Button variant="outline" className="h-9 gap-2 rounded-xl bg-background/50 text-xs">
+                                <Button
+                                    variant="outline"
+                                    className="h-9 gap-2 rounded-xl bg-background/50 text-xs"
+                                    onClick={handleShare}
+                                >
                                     <Share2 className="h-4 w-4" />
                                     Partager
                                 </Button>
-                                <Button className="h-9 gap-2 rounded-xl bg-hff-yellow text-hff-navy hover:bg-hff-yellow/90 text-xs shadow-sm">
+                                <Button
+                                    className="h-9 gap-2 rounded-xl bg-hff-yellow text-hff-navy hover:bg-hff-yellow/90 text-xs shadow-sm"
+                                    onClick={handleAnalyze}
+                                >
                                     <Play className="h-4 w-4" />
                                     Analyser
                                 </Button>
