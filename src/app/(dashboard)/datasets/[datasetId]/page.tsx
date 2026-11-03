@@ -175,7 +175,7 @@ export default function DatasetDetailPage({ params }: PageProps) {
                                 {rowsData?.rows.map((row, idx) => (
                                     <tr key={idx} className="border-b border-border/30 last:border-0 hover:bg-muted/20">
                                         {rowsData.columns.slice(0, 5).map((col) => (
-                                            <td key={col} className="max-w-[150px] truncate whitespace-nowrap px-4 py-2.5 text-foreground">
+                                            <td key={col} className="max-w-37.5 truncate whitespace-nowrap px-4 py-2.5 text-foreground">
                                                 {row[col] === null || row[col] === undefined || row[col] === "" ? (
                                                     <span className="text-muted-foreground/50">—</span>
                                                 ) : (
