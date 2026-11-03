@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 import { formatDate, formatNumber } from "@/lib/utils/format";
 import {
+    FILE_FORMAT_LABELS,
     PROCESSING_STATUS_LABELS,
     type DatasetResponse,
     type FileProcessingStatus,
@@ -47,7 +48,7 @@ const FORMAT_ICONS: Record<FileType, typeof FileText> = {
     CSV: FileSpreadsheet,
     XLSX: FileSpreadsheet,
     EXCEL: FileSpreadsheet,
-    SQL: FileCode,
+    SQL: Database,
     JSON: FileJson,
     PNG: FileText,
     SVG: FileText,
@@ -67,6 +68,19 @@ const FORMAT_COLORS: Record<FileType, string> = {
     PDF: "bg-red-500/15 text-red-600",
     HTML: "bg-yellow-500/15 text-yellow-600",
     ZIP: "bg-muted text-muted-foreground",
+};
+
+const FORMAT_BADGE_BORDERS: Record<FileType, string> = {
+    CSV: "ring-success/30",
+    XLSX: "ring-hff-blue/30",
+    EXCEL: "ring-hff-blue/30",
+    SQL: "ring-purple-500/30",
+    JSON: "ring-orange-500/30",
+    PNG: "ring-pink-500/30",
+    SVG: "ring-pink-500/30",
+    PDF: "ring-red-500/30",
+    HTML: "ring-yellow-500/30",
+    ZIP: "ring-border",
 };
 
 const STATUS_STYLES: Record<FileProcessingStatus, string> = {
@@ -93,6 +107,26 @@ function getStatus(dataset: DatasetResponse): FileProcessingStatus {
     return "EXPLORED";
 }
 
+function FormatBadge({ format }: { format: FileType }) {
+    const Icon = FORMAT_ICONS[format] ?? FileText;
+    const colorClass = FORMAT_COLORS[format] ?? "bg-muted text-muted-foreground";
+    const borderClass = FORMAT_BADGE_BORDERS[format] ?? "ring-border";
+    const label = FILE_FORMAT_LABELS[format] ?? format;
+
+    return (
+        <span
+            className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold ring-1 ring-inset",
+                colorClass,
+                borderClass
+            )}
+        >
+            <Icon className="h-3 w-3" strokeWidth={2.5} />
+            {label}
+        </span>
+    );
+}
+
 function EmptyRow({ index }: { index: number }) {
     return (
         <tr
@@ -101,13 +135,13 @@ function EmptyRow({ index }: { index: number }) {
             data-index={index}
         >
             <td className="px-4 py-3">
-                <div className="h-9 w-full max-w-[200px] rounded-xl bg-muted/20" />
+                <div className="h-9 w-full max-w-50 rounded-xl bg-muted/20" />
             </td>
             <td className="px-4 py-3">
                 <div className="h-3 w-20 rounded bg-muted/20" />
             </td>
             <td className="px-4 py-3">
-                <div className="h-3 w-14 rounded bg-muted/20" />
+                <div className="h-6 w-20 rounded-md bg-muted/20" />
             </td>
             <td className="px-4 py-3">
                 <div className="mx-auto h-3 w-14 rounded bg-muted/20" />
@@ -146,14 +180,14 @@ export function DatasetTable({
             <div className="hff-scrollbar flex-1 overflow-auto">
                 <table className="w-full table-fixed">
                     <colgroup>
-                        <col className="w-[260px]" />
-                        <col className="w-[140px]" />
-                        <col className="w-[90px]" />
-                        <col className="w-[100px]" />
-                        <col className="w-[90px]" />
-                        <col className="w-[120px]" />
-                        <col className="w-[130px]" />
-                        <col className="w-[48px]" />
+                        <col className="w-62.5" />
+                        <col className="w-35" />
+                        <col className="w-30" />
+                        <col className="w-22.5" />
+                        <col className="w-22.5" />
+                        <col className="w-30" />
+                        <col className="w-32.5" />
+                        <col className="w-12" />
                     </colgroup>
                     <thead className="sticky top-0 z-10">
                         <tr className="border-b border-border/60 bg-muted/60 backdrop-blur-md">
@@ -196,7 +230,7 @@ export function DatasetTable({
                                     className={cn(
                                         "group cursor-pointer border-b border-border/40 transition-all last:border-0",
                                         isSelected
-                                            ? "bg-hff-navy/[0.04] hover:bg-hff-navy/[0.06]"
+                                            ? "bg-hff-navy/4 hover:bg-hff-navy/6"
                                             : "hover:bg-muted/40"
                                     )}
                                 >
@@ -234,9 +268,7 @@ export function DatasetTable({
                                     </td>
 
                                     <td className="px-4 py-3">
-                                        <span className="text-xs font-medium text-muted-foreground">
-                                            {format}
-                                        </span>
+                                        <FormatBadge format={format} />
                                     </td>
 
                                     <td className="px-4 py-3 text-center">
