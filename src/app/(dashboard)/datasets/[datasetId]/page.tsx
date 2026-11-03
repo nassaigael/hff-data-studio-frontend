@@ -2,320 +2,255 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
-    ArrowLeft,
+    ArrowRight,
+    Calendar,
     CheckCircle2,
+    Clock,
     Database,
-    Eye,
-    FileCode,
-    FileJson,
     FileSpreadsheet,
-    FileText,
     HardDrive,
-    Loader2,
-    Pencil,
-    Rows3,
     Table2,
     User,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useDataset, useDatasetStatistics, useDatasetColumns } from "@/hooks/use-datasets";
+import { useDataset, useDatasetColumns } from "@/hooks/use-datasets";
+import { useDatasetRows } from "@/hooks/use-dataset-rows";
 import { cn } from "@/lib/utils/cn";
 import { formatDate, formatNumber } from "@/lib/utils/format";
-import { FILE_FORMAT_LABELS, type FileType } from "@/types/dataset";
-
-const FORMAT_ICONS: Record<FileType, typeof FileText> = {
-    CSV: FileSpreadsheet,
-    XLSX: FileSpreadsheet,
-    EXCEL: FileSpreadsheet,
-    SQL: Database,
-    JSON: FileJson,
-    PNG: FileText,
-    SVG: FileText,
-    PDF: FileText,
-    HTML: FileCode,
-    ZIP: FileText,
-};
-
-const FORMAT_COLORS: Record<FileType, string> = {
-    CSV: "bg-success/15 text-success ring-success/30",
-    XLSX: "bg-hff-blue/15 text-hff-blue ring-hff-blue/30",
-    EXCEL: "bg-hff-blue/15 text-hff-blue ring-hff-blue/30",
-    SQL: "bg-purple-500/15 text-purple-600 ring-purple-500/30",
-    JSON: "bg-orange-500/15 text-orange-600 ring-orange-500/30",
-    PNG: "bg-pink-500/15 text-pink-600 ring-pink-500/30",
-    SVG: "bg-pink-500/15 text-pink-600 ring-pink-500/30",
-    PDF: "bg-red-500/15 text-red-600 ring-red-500/30",
-    HTML: "bg-yellow-500/15 text-yellow-600 ring-yellow-500/30",
-    ZIP: "bg-muted text-muted-foreground ring-border",
-};
 
 interface PageProps {
     params: Promise<{ datasetId: string }>;
 }
 
+const TYPE_COLORS: Record<string, string> = {
+    STRING: "bg-sky-500",
+    INTEGER: "bg-emerald-500",
+    FLOAT: "bg-violet-500",
+    DATE: "bg-amber-500",
+    BOOLEAN: "bg-pink-500",
+};
+
+const TYPE_LABELS: Record<string, string> = {
+    STRING: "Texte",
+    INTEGER: "Entier",
+    FLOAT: "Décimal",
+    DATE: "Date",
+    BOOLEAN: "Booléen",
+};
+
 export default function DatasetDetailPage({ params }: PageProps) {
     const { datasetId } = use(params);
-    const router = useRouter();
-
-    const { data: dataset, isLoading, isError } = useDataset(datasetId);
+    const { data: dataset } = useDataset(datasetId);
     const { data: columns } = useDatasetColumns(datasetId);
+    const { data: rowsData } = useDatasetRows(datasetId, 0, 5);
 
-    if (isLoading) {
-        return (
-            <div className="flex h-[calc(100vh-7rem)] items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-        );
-    }
+    if (!dataset) return null;
 
-    if (isError || !dataset) {
-        return (
-            <div className="flex h-[calc(100vh-7rem)] flex-col items-center justify-center gap-4">
-                <p className="text-sm font-medium text-destructive">Jeu de données introuvable</p>
-                <Button variant="outline" onClick={() => router.push("/datasets")}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Retour aux données
-                </Button>
-            </div>
-        );
-    }
+    const totalMissing = columns?.reduce((acc, col) => acc + col.nullCount, 0) ?? 0;
+    const totalCells = (dataset.rowCount ?? 0) * (dataset.columnCount ?? 0);
+    const completionScore = totalCells > 0 ? 100 - (totalMissing / totalCells) * 100 : 100;
+    const isHealthy = completionScore >= 90;
 
-    const format = (dataset.fileFormat ?? "CSV") as FileType;
-    const FormatIcon = FORMAT_ICONS[format] ?? FileText;
-    const formatColor = FORMAT_COLORS[format] ?? "bg-muted text-muted-foreground ring-border";
-    const formatLabel = FILE_FORMAT_LABELS[format] ?? format;
-    const qualityScore = dataset.qualityScore ?? 0;
+    const typeCounts = columns?.reduce((acc, col) => {
+        acc[col.detectedType] = (acc[col.detectedType] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>) ?? {};
+
+    const radius = 40;
+    const circumference = 2 * Math.PI * radius;
 
     return (
-        <div className="flex h-[calc(100vh-7rem)] flex-col gap-6 overflow-auto">
-            <div className="flex flex-col gap-4">
-                <Link
-                    href="/datasets"
-                    className="inline-flex w-fit items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
-                >
-                    <ArrowLeft className="h-3.5 w-3.5" />
-                    Retour aux jeux de données
-                </Link>
+        <div className="flex h-full w-full flex-col gap-5 overflow-hidden bg-background">
 
-                <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                        <div
-                            className={cn(
-                                "flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl ring-1 ring-inset",
-                                formatColor
-                            )}
-                        >
-                            <FormatIcon className="h-7 w-7" strokeWidth={2.5} />
+            <div className="flex shrink-0 flex-wrap items-center gap-2 text-[11px] font-medium text-muted-foreground">
+                <div className="flex items-center gap-1.5 rounded-md bg-muted/40 px-2.5 py-1.5 ring-1 ring-inset ring-border/50">
+                    <Calendar className="h-3.5 w-3.5" />
+                    Créé le {formatDate(dataset.createdAt)}
+                </div>
+                <div className="flex items-center gap-1.5 rounded-md bg-muted/40 px-2.5 py-1.5 ring-1 ring-inset ring-border/50">
+                    <Clock className="h-3.5 w-3.5" />
+                    Mise à jour {formatDate(dataset.createdAt)}
+                </div>
+                <div className="flex items-center gap-1.5 rounded-md bg-muted/40 px-2.5 py-1.5 ring-1 ring-inset ring-border/50">
+                    <FileSpreadsheet className="h-3.5 w-3.5" />
+                    Type {dataset.fileFormat}
+                </div>
+                <div className="flex items-center gap-1.5 rounded-md bg-muted/40 px-2.5 py-1.5 ring-1 ring-inset ring-border/50">
+                    <HardDrive className="h-3.5 w-3.5" />
+                    Taille Inconnue
+                </div>
+                <div className="flex items-center gap-1.5 rounded-md bg-muted/40 px-2.5 py-1.5 ring-1 ring-inset ring-border/50">
+                    <User className="h-3.5 w-3.5" />
+                    {dataset.projectName}
+                </div>
+            </div>
+
+            <div className="grid shrink-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card p-4 shadow-sm">
+                    <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-hff-blue/10 text-hff-blue">
+                                <Table2 className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-[11px] font-medium text-muted-foreground">Nombre total de lignes</span>
+                                <span className="text-2xl font-bold text-foreground">{formatNumber(dataset.rowCount)}</span>
+                            </div>
                         </div>
-                        <div>
-                            <h1 className="text-2xl font-bold text-foreground">{dataset.datasetName}</h1>
-                            <p className="mt-0.5 text-sm text-muted-foreground">{dataset.fileName}</p>
-                            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                                <span
-                                    className={cn(
-                                        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold ring-1 ring-inset",
-                                        formatColor
-                                    )}
-                                >
-                                    {formatLabel}
-                                </span>
-                                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-success" />
-                                    {dataset.processingStatus === "EXPLORED"
-                                        ? "Actif"
-                                        : dataset.processingStatus ?? "—"}
-                                </span>
-                                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground">
-                                    {dataset.projectName}
-                                </span>
-                                <span className="text-muted-foreground">
-                                    Mis à jour le {formatDate(dataset.createdAt)}
-                                </span>
+                    </div>
+                </div>
+
+                <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card p-4 shadow-sm">
+                    <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600">
+                                <Database className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-[11px] font-medium text-muted-foreground">Nombre de colonnes</span>
+                                <span className="text-2xl font-bold text-foreground">{formatNumber(dataset.columnCount)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card p-4 shadow-sm">
+                    <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/10 text-success">
+                                <CheckCircle2 className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-[11px] font-medium text-muted-foreground">Complétude</span>
+                                <span className="text-2xl font-bold text-foreground">{completionScore.toFixed(1)}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card p-4 shadow-sm">
+                    <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
+                                <Clock className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-[11px] font-medium text-muted-foreground">Dernière mise à jour</span>
+                                <span className="text-sm font-bold text-foreground">{formatDate(dataset.createdAt)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid min-h-0 flex-1 grid-cols-1 gap-5 lg:grid-cols-3">
+
+                <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm lg:col-span-2">
+                    <div className="flex shrink-0 items-center justify-between border-b border-border/50 px-4 py-3">
+                        <div className="flex items-center gap-2">
+                            <Table2 className="h-4 w-4 text-muted-foreground" />
+                            <h2 className="text-sm font-semibold text-foreground">Aperçu des données</h2>
+                        </div>
+                        <Link
+                            href={`/datasets/${datasetId}/data`}
+                            className="inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-1 text-[10px] font-semibold text-foreground hover:bg-muted"
+                        >
+                            Voir l'intégralité
+                            <ArrowRight className="h-3 w-3" />
+                        </Link>
+                    </div>
+
+                    <div className="hff-scrollbar flex-1 overflow-auto">
+                        <table className="w-full text-left text-xs">
+                            <thead className="sticky top-0 z-10 bg-muted/30 backdrop-blur-md">
+                                <tr className="border-b border-border/50">
+                                    {rowsData?.columns.slice(0, 5).map((col) => (
+                                        <th key={col} className="whitespace-nowrap px-4 py-2.5 font-semibold text-muted-foreground">
+                                            {col}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {rowsData?.rows.map((row, idx) => (
+                                    <tr key={idx} className="border-b border-border/30 last:border-0 hover:bg-muted/20">
+                                        {rowsData.columns.slice(0, 5).map((col) => (
+                                            <td key={col} className="max-w-[150px] truncate whitespace-nowrap px-4 py-2.5 text-foreground">
+                                                {row[col] === null || row[col] === undefined || row[col] === "" ? (
+                                                    <span className="text-muted-foreground/50">—</span>
+                                                ) : (
+                                                    String(row[col])
+                                                )}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div className="flex h-full min-h-0 flex-col gap-5">
+
+                    <div className="flex shrink-0 flex-col gap-3 rounded-2xl border border-border/50 bg-card p-4 shadow-sm">
+                        <div className="flex items-center gap-2">
+                            <Database className="h-4 w-4 text-muted-foreground" />
+                            <h2 className="text-sm font-semibold text-foreground">Types de données</h2>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {Object.entries(typeCounts).length === 0 ? (
+                                <span className="text-xs text-muted-foreground">Aucun type détecté.</span>
+                            ) : (
+                                Object.entries(typeCounts).map(([type, count]) => (
+                                    <div key={type} className="flex items-center gap-1.5 rounded-lg border border-border/50 bg-muted/20 px-2 py-1">
+                                        <span className={cn("h-2 w-2 rounded-full", TYPE_COLORS[type] || "bg-muted-foreground")} />
+                                        <span className="text-xs font-bold text-foreground">{count}</span>
+                                        <span className="text-[10px] font-medium text-muted-foreground">{TYPE_LABELS[type] || type}</span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-border/50 bg-card p-5 shadow-sm">
+                        <div className="mb-4 flex w-full items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-success" />
+                            <h2 className="text-sm font-semibold text-foreground">Qualité des données</h2>
+                        </div>
+
+                        <div className="flex items-center gap-6">
+                            <div className="relative flex h-24 w-24 shrink-0 items-center justify-center">
+                                <svg className="absolute inset-0 -rotate-90" viewBox="0 0 96 96">
+                                    <circle cx="48" cy="48" r={radius} className="fill-none stroke-muted/30" strokeWidth="8" />
+                                    <circle
+                                        cx="48"
+                                        cy="48"
+                                        r={radius}
+                                        className={cn("fill-none transition-all duration-1000", isHealthy ? "stroke-success" : "stroke-warning")}
+                                        strokeWidth="8"
+                                        strokeDasharray={circumference}
+                                        strokeDashoffset={circumference - (completionScore / 100) * circumference}
+                                        strokeLinecap="round"
+                                    />
+                                </svg>
+                                <span className="text-xl font-bold text-foreground">{completionScore.toFixed(0)}%</span>
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <div className="flex items-center justify-between gap-4">
+                                    <span className="text-xs font-medium text-muted-foreground">Score global</span>
+                                    <span className="text-xs font-bold text-foreground">{completionScore.toFixed(1)}%</span>
+                                </div>
+                                <div className="flex items-center justify-between gap-4">
+                                    <span className="text-xs font-medium text-muted-foreground">Manquantes</span>
+                                    <span className="text-xs font-bold text-foreground">{formatNumber(totalMissing)}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex shrink-0 gap-2">
-                        <Button variant="outline" className="gap-2" onClick={() => router.push(`/datasets/${datasetId}/data`)}>
-                            <Eye className="h-4 w-4" />
-                            Aperçu des données
-                        </Button>
-                    </div>
-                </div>
-
-                <nav className="flex gap-1 border-b border-border/60">
-                    <Link
-                        href={`/datasets/${datasetId}`}
-                        className="border-b-2 border-hff-yellow px-4 py-2 text-sm font-semibold text-foreground"
-                    >
-                        Vue d&apos;ensemble
-                    </Link>
-                    <Link
-                        href={`/datasets/${datasetId}/data`}
-                        className="border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-                    >
-                        Aperçu des données
-                    </Link>
-                </nav>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
-                    <h2 className="mb-4 text-sm font-semibold text-foreground">Informations générales</h2>
-                    <dl className="space-y-3 text-sm">
-                        <div className="flex justify-between gap-4">
-                            <dt className="text-muted-foreground">Nom</dt>
-                            <dd className="text-right font-medium text-foreground">{dataset.datasetName}</dd>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                            <dt className="text-muted-foreground">Fichier source</dt>
-                            <dd className="max-w-[60%] truncate text-right font-medium text-foreground">
-                                {dataset.fileName}
-                            </dd>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                            <dt className="text-muted-foreground">Format</dt>
-                            <dd className="text-right font-medium text-foreground">{formatLabel}</dd>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                            <dt className="text-muted-foreground">Lignes</dt>
-                            <dd className="text-right font-medium text-foreground">
-                                {formatNumber(dataset.rowCount)}
-                            </dd>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                            <dt className="text-muted-foreground">Colonnes</dt>
-                            <dd className="text-right font-medium text-foreground">
-                                {formatNumber(dataset.columnCount)}
-                            </dd>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                            <dt className="text-muted-foreground">Projet</dt>
-                            <dd className="text-right font-medium text-foreground">{dataset.projectName}</dd>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                            <dt className="text-muted-foreground">Créé le</dt>
-                            <dd className="text-right font-medium text-foreground">
-                                {formatDate(dataset.createdAt)}
-                            </dd>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                            <dt className="text-muted-foreground">Statut</dt>
-                            <dd className="text-right font-medium text-foreground">
-                                {dataset.isCleaned ? "Nettoyé" : "Non nettoyé"}
-                            </dd>
-                        </div>
-                    </dl>
-                </div>
-
-                <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
-                    <h2 className="mb-4 text-sm font-semibold text-foreground">Qualité des données</h2>
-                    <div className="flex items-center justify-center py-4">
-                        <div className="relative flex h-32 w-32 items-center justify-center">
-                            <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
-                                <circle cx="50" cy="50" r="42" strokeWidth="8" className="fill-none stroke-muted" />
-                                <circle
-                                    cx="50"
-                                    cy="50"
-                                    r="42"
-                                    strokeWidth="8"
-                                    className="fill-none stroke-success transition-all duration-700"
-                                    strokeDasharray={`${2 * Math.PI * 42}`}
-                                    strokeDashoffset={`${2 * Math.PI * 42 * (1 - qualityScore / 100)}`}
-                                    strokeLinecap="round"
-                                />
-                            </svg>
-                            <span className="text-2xl font-bold text-foreground">{qualityScore}%</span>
-                        </div>
-                    </div>
-                    <p className="text-center text-xs text-muted-foreground">
-                        {qualityScore > 0
-                            ? "Score global basé sur l'exploration"
-                            : "Score disponible après exploration"}
-                    </p>
-                </div>
-
-                <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
-                    <h2 className="mb-4 text-sm font-semibold text-foreground">Statistiques clés</h2>
-                    <div className="grid grid-cols-2 gap-3">
-                        <StatCard
-                            icon={Rows3}
-                            label="Enregistrements"
-                            value={formatNumber(dataset.rowCount)}
-                            color="text-hff-blue bg-hff-blue/10"
-                        />
-                        <StatCard
-                            icon={Table2}
-                            label="Colonnes"
-                            value={formatNumber(dataset.columnCount)}
-                            color="text-purple-600 bg-purple-500/10"
-                        />
-                        <StatCard
-                            icon={User}
-                            label="Analyses"
-                            value={formatNumber(dataset.analysisCount ?? 0)}
-                            color="text-success bg-success/10"
-                        />
-                        <StatCard
-                            icon={HardDrive}
-                            label="Colonnes typées"
-                            value={formatNumber(columns?.length ?? 0)}
-                            color="text-amber-600 bg-amber-500/10"
-                        />
-                    </div>
                 </div>
             </div>
-
-            <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
-                <h2 className="mb-4 text-sm font-semibold text-foreground">Actions rapides</h2>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                    <Button
-                        className="justify-start gap-2 rounded-xl bg-hff-yellow text-hff-navy hover:bg-hff-yellow/90"
-                        onClick={() => router.push(`/datasets/${datasetId}/data`)}
-                    >
-                        <Eye className="h-4 w-4" />
-                        Voir les données
-                    </Button>
-                    <Button variant="outline" className="justify-start gap-2 rounded-xl">
-                        <Pencil className="h-4 w-4" />
-                        Renommer
-                    </Button>
-                    <Button variant="outline" className="justify-start gap-2 rounded-xl">
-                        <CheckCircle2 className="h-4 w-4" />
-                        Marquer nettoyé
-                    </Button>
-                    <Button variant="outline" className="justify-start gap-2 rounded-xl">
-                        <Database className="h-4 w-4" />
-                        Lancer une analyse
-                    </Button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function StatCard({
-    icon: Icon,
-    label,
-    value,
-    color,
-}: {
-    icon: typeof Rows3;
-    label: string;
-    value: string;
-    color: string;
-}) {
-    return (
-        <div className="rounded-xl border border-border/40 p-3">
-            <div className={cn("mb-1 inline-flex h-7 w-7 items-center justify-center rounded-lg", color)}>
-                <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />
-            </div>
-            <p className="text-lg font-bold leading-tight text-foreground">{value}</p>
-            <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                {label}
-            </p>
         </div>
     );
 }
