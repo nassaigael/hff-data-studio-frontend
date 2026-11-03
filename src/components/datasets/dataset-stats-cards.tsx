@@ -3,28 +3,26 @@
 import { BarChart3, CheckCircle2, Database, Download } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatNumber } from "@/lib/utils/format";
-import type { DatasetStatisticsResponse } from "@/types/dataset";
+import type { Stats } from "@/lib/api/stats";
 
 interface DatasetStatsCardsProps {
-    statistics: DatasetStatisticsResponse | undefined;
-    analysesCount?: number;
-    exportsCount?: number;
+    stats: Stats | null | undefined;
+    loading?: boolean;
 }
 
-export function DatasetStatsCards({
-    statistics,
-    analysesCount = 73,
-    exportsCount = 45,
-}: DatasetStatsCardsProps) {
-    const total = statistics?.totalDatasets ?? 0;
-    const cleaned = statistics?.cleanedDatasets ?? 0;
+export function DatasetStatsCards({ stats, loading = false }: DatasetStatsCardsProps) {
+    const total = stats?.totalDatasets ?? 0;
+    const cleaned = stats?.cleanedDatasets ?? 0;
     const cleanedPercent = total > 0 ? Math.round((cleaned / total) * 100) : 0;
+    const newLast30Days = stats?.newDatasetsLast30Days ?? 0;
+    const totalAnalysesRun = stats?.totalAnalysesRun ?? 0;
+    const totalExports = stats?.totalExports ?? 0;
 
     const items = [
         {
             label: "Total des jeux de données",
             value: formatNumber(total),
-            trend: `+${statistics?.newDatasetsLast30Days ?? 0} ce mois`,
+            trend: `+${newLast30Days} ce mois`,
             icon: Database,
             color: "text-hff-blue",
             bgColor: "bg-hff-blue/10",
@@ -39,16 +37,16 @@ export function DatasetStatsCards({
         },
         {
             label: "Analyses exécutées",
-            value: formatNumber(analysesCount),
-            trend: "+15 ce mois",
+            value: formatNumber(totalAnalysesRun),
+            trend: "",
             icon: BarChart3,
             color: "text-hff-navy",
             bgColor: "bg-hff-yellow/20",
         },
         {
             label: "Exports réalisés",
-            value: formatNumber(exportsCount),
-            trend: "+10 ce mois",
+            value: formatNumber(totalExports),
+            trend: "",
             icon: Download,
             color: "text-purple-600",
             bgColor: "bg-purple-500/10",
@@ -75,14 +73,16 @@ export function DatasetStatsCards({
                         </div>
                         <div className="min-w-0">
                             <p className="text-xl font-bold leading-none text-foreground">
-                                {item.value}
+                                {loading ? "—" : item.value}
                             </p>
                             <p className="mt-1 truncate text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                                 {item.label}
                             </p>
-                            <p className="mt-0.5 truncate text-[10px] font-medium text-success">
-                                {item.trend}
-                            </p>
+                            {item.trend && (
+                                <p className="mt-0.5 truncate text-[10px] font-medium text-success">
+                                    {loading ? "…" : item.trend}
+                                </p>
+                            )}
                         </div>
                     </div>
                 );

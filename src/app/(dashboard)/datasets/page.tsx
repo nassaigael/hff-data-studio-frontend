@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Database, Upload } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Upload } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { DatasetTable } from "@/components/datasets/dataset-table";
 import { DatasetFilters } from "@/components/datasets/dataset-filters";
 import { DatasetStatsCards } from "@/components/datasets/dataset-stats-cards";
 import { DatasetSidebar } from "@/components/datasets/dataset-sidebar";
 import { DatasetListSkeleton } from "@/components/datasets/dataset-skeleton";
+import { UploadDialog } from "@/components/datasets/upload-dialog";
+import { RenameDialog } from "@/components/datasets/rename-dialog";
+import { DeleteConfirmDialog } from "@/components/datasets/delete-confirm-dialog";
 import { Pagination } from "@/components/projects/pagination";
 import { useUIStore } from "@/stores/ui-store";
 import {
@@ -15,11 +20,14 @@ import {
   useDatasetStatistics,
   useMarkAsCleaned,
   useMarkAsUncleaned,
-  useDeleteDataset,
 } from "@/hooks/use-datasets";
+import { useStats } from "@/hooks/use-stats";
+import { projectsApi } from "@/lib/api/projects";
 import type { DatasetResponse } from "@/types/dataset";
 
 export default function DatasetsPage() {
+  const router = useRouter();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [projectFilter, setProjectFilter] = useState("all");
@@ -27,18 +35,31 @@ export default function DatasetsPage() {
   const [selectedDataset, setSelectedDataset] = useState<DatasetResponse | null>(null);
   const [page, setPage] = useState(0);
 
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [renameTarget, setRenameTarget] = useState<DatasetResponse | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DatasetResponse | null>(null);
+
   const setHeaderActions = useUIStore((state) => state.setHeaderActions);
 
   const { data, isLoading, isError } = useDatasets({ page, size: 9 });
   const { data: statistics } = useDatasetStatistics();
+  const { data: stats, isLoading: statsLoading } = useStats(projectFilter);
+
+  const { data: projectsPage } = useQuery({
+    queryKey: ["projects", "for-filter"],
+    queryFn: () => projectsApi.getAll({ size: 100 }),
+    staleTime: 60_000,
+  });
 
   const markAsCleaned = useMarkAsCleaned();
   const markAsUncleaned = useMarkAsUncleaned();
-  const deleteDataset = useDeleteDataset();
 
   useEffect(() => {
     setHeaderActions(
-      <Button className="shrink-0 gap-2 rounded-xl bg-hff-yellow text-hff-navy shadow-lg shadow-hff-yellow/30 transition-all hover:bg-hff-yellow/90 hover:shadow-xl hover:shadow-hff-yellow/40">
+      <Button
+        onClick={() => setUploadOpen(true)}
+        className="shrink-0 gap-2 rounded-xl bg-hff-yellow text-hff-navy shadow-lg shadow-hff-yellow/30 transition-all hover:bg-hff-yellow/90 hover:shadow-xl hover:shadow-hff-yellow/40"
+      >
         <Upload className="h-4 w-4" />
         Importer des données
       </Button>
@@ -54,25 +75,30 @@ export default function DatasetsPage() {
         searchTerm === "" ||
         dataset.datasetName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         dataset.fileName.toLowerCase().includes(searchTerm.toLowerCase());
+
       const matchesStatus =
         statusFilter === "all" ||
         (statusFilter === "CLEANED" && dataset.isCleaned) ||
-        (statusFilter === "EXPLORED" && !dataset.isCleaned && dataset.processingStatus !== "ERROR") ||
+        (statusFilter === "EXPLORED" &&
+          !dataset.isCleaned &&
+          dataset.processingStatus !== "ERROR") ||
+        (statusFilter === "ANALYZING" && dataset.processingStatus === "ANALYZING") ||
         (statusFilter === "ERROR" && dataset.processingStatus === "ERROR");
+
       const matchesProject =
         projectFilter === "all" || dataset.projectId === projectFilter;
-      const matchesSource = sourceFilter === "all" || dataset.fileFormat === sourceFilter;
+
+      const matchesSource =
+        sourceFilter === "all" || dataset.fileFormat === sourceFilter;
+
       return matchesSearch && matchesStatus && matchesProject && matchesSource;
     });
   }, [datasets, searchTerm, statusFilter, projectFilter, sourceFilter]);
 
   const projectsList = useMemo(() => {
-    const map = new Map<string, string>();
-    datasets.forEach((d) => {
-      if (d.projectId && d.projectName) map.set(d.projectId, d.projectName);
-    });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [datasets]);
+    const list = projectsPage?.content ?? [];
+    return list.map((p) => ({ id: p.projectId, name: p.projectName }));
+  }, [projectsPage]);
 
   const sourcesList = useMemo(() => {
     const set = new Set<string>();
@@ -92,11 +118,7 @@ export default function DatasetsPage() {
   return (
     <div className="flex h-[calc(100vh-7rem)] gap-6 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-hidden">
-        <DatasetStatsCards
-          statistics={statistics}
-          analysesCount={73}
-          exportsCount={45}
-        />
+        <DatasetStatsCards stats={stats} loading={statsLoading} />
 
         <div className="shrink-0">
           <DatasetFilters
@@ -128,26 +150,31 @@ export default function DatasetsPage() {
                 </p>
               </div>
             </div>
+          ) : datasets.length === 0 ? (
+            <EmptyState onImport={() => setUploadOpen(true)} />
           ) : (
             <DatasetTable
               datasets={filteredDatasets}
               selectedDatasetId={selectedDataset?.datasetId}
               onSelect={setSelectedDataset}
+              onView={(d) => router.push(`/datasets/${d.datasetId}`)}
+              onRename={(d) => setRenameTarget(d)}
               onMarkCleaned={(d) => markAsCleaned.mutate(d.datasetId)}
               onMarkUncleaned={(d) => markAsUncleaned.mutate(d.datasetId)}
-              onDelete={(d) => deleteDataset.mutate(d.datasetId)}
+              onDelete={(d) => setDeleteTarget(d)}
             />
           )}
         </div>
 
         <div className="flex shrink-0 items-center justify-between gap-4 border-t border-border/60 pt-4">
-          {!isLoading && !isError && data ? (
+          {!isLoading && !isError && data && datasets.length > 0 ? (
             <Pagination
               currentPage={data.pageNumber}
               totalPages={data.totalPages}
               totalElements={data.totalElements}
               pageSize={data.pageSize}
               onPageChange={setPage}
+              itemLabel="jeux de données"
             />
           ) : (
             <div />
@@ -156,8 +183,44 @@ export default function DatasetsPage() {
       </div>
 
       <aside className="hidden h-full w-80 shrink-0 xl:block">
-        <DatasetSidebar statistics={statistics} />
+        <DatasetSidebar statistics={statistics} datasets={datasets} />
       </aside>
+
+      <UploadDialog open={uploadOpen} onOpenChange={setUploadOpen} />
+      <RenameDialog
+        dataset={renameTarget}
+        onOpenChange={(open) => !open && setRenameTarget(null)}
+      />
+      <DeleteConfirmDialog
+        dataset={deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      />
+    </div>
+  );
+}
+
+function EmptyState({ onImport }: { onImport: () => void }) {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-4 rounded-2xl border border-border/60 bg-card p-8 text-center">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-hff-yellow/15">
+        <Upload className="h-8 w-8 text-hff-navy" />
+      </div>
+      <div>
+        <h3 className="text-base font-semibold text-foreground">
+          Aucun jeu de données pour le moment
+        </h3>
+        <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+          Importez votre premier fichier CSV, Excel, JSON ou SQL pour commencer à
+          explorer vos données.
+        </p>
+      </div>
+      <Button
+        onClick={onImport}
+        className="gap-2 rounded-xl bg-hff-yellow text-hff-navy hover:bg-hff-yellow/90"
+      >
+        <Upload className="h-4 w-4" />
+        Importer un fichier
+      </Button>
     </div>
   );
 }

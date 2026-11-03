@@ -1,9 +1,11 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { datasetsApi, type GetDatasetsParams } from "@/lib/api/datasets";
 import { ApiError } from "@/lib/api/errors";
+import type { DatasetResponse } from "@/types/dataset";
+import type { PageResponse } from "@/types/common";
 
 export const datasetKeys = {
     all: ["datasets"] as const,
@@ -14,6 +16,14 @@ export const datasetKeys = {
     columns: (id: string) => [...datasetKeys.all, "columns", id] as const,
     statistics: () => [...datasetKeys.all, "statistics"] as const,
 };
+
+const STATS_KEY = ["stats"] as const;
+
+function invalidateAllViews(queryClient: QueryClient): void {
+    queryClient.invalidateQueries({ queryKey: datasetKeys.lists() });
+    queryClient.invalidateQueries({ queryKey: datasetKeys.statistics() });
+    queryClient.invalidateQueries({ queryKey: STATS_KEY });
+}
 
 export function useDatasets(params: GetDatasetsParams = {}) {
     return useQuery({
@@ -55,8 +65,7 @@ export function useMarkAsCleaned() {
     return useMutation({
         mutationFn: (datasetId: string) => datasetsApi.markAsCleaned(datasetId),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: datasetKeys.lists() });
-            queryClient.invalidateQueries({ queryKey: datasetKeys.statistics() });
+            invalidateAllViews(queryClient);
             toast.success("Dataset marqué comme nettoyé");
         },
         onError: (error) => {
@@ -72,8 +81,7 @@ export function useMarkAsUncleaned() {
     return useMutation({
         mutationFn: (datasetId: string) => datasetsApi.markAsUncleaned(datasetId),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: datasetKeys.lists() });
-            queryClient.invalidateQueries({ queryKey: datasetKeys.statistics() });
+            invalidateAllViews(queryClient);
             toast.success("Dataset marqué comme non nettoyé");
         },
         onError: (error) => {
@@ -89,14 +97,42 @@ export function useRenameDataset() {
     return useMutation({
         mutationFn: ({ id, name }: { id: string; name: string }) =>
             datasetsApi.renameDataset(id, name),
-        onSuccess: (dataset) => {
-            queryClient.invalidateQueries({ queryKey: datasetKeys.lists() });
-            queryClient.invalidateQueries({ queryKey: datasetKeys.detail(dataset.datasetId) });
-            toast.success("Dataset renommé");
+        onMutate: async ({ id, name }) => {
+            await queryClient.cancelQueries({ queryKey: datasetKeys.lists() });
+
+            const previous = queryClient.getQueriesData<PageResponse<DatasetResponse>>({
+                queryKey: datasetKeys.lists(),
+            });
+
+            queryClient.setQueriesData<PageResponse<DatasetResponse>>(
+                { queryKey: datasetKeys.lists() },
+                (old) => {
+                    if (!old?.content) return old;
+                    return {
+                        ...old,
+                        content: old.content.map((d) =>
+                            d.datasetId === id ? { ...d, datasetName: name } : d
+                        ),
+                    };
+                }
+            );
+
+            return { previous };
         },
-        onError: (error) => {
+        onError: (error, _vars, context) => {
+            if (context?.previous) {
+                context.previous.forEach(([key, data]) => {
+                    queryClient.setQueryData(key, data);
+                });
+            }
             const apiError = ApiError.from(error);
             toast.error(apiError.title, { description: apiError.description });
+        },
+        onSuccess: () => {
+            toast.success("Dataset renommé");
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: datasetKeys.lists() });
         },
     });
 }
@@ -107,8 +143,7 @@ export function useDeleteDataset() {
     return useMutation({
         mutationFn: (datasetId: string) => datasetsApi.deleteDataset(datasetId),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: datasetKeys.lists() });
-            queryClient.invalidateQueries({ queryKey: datasetKeys.statistics() });
+            invalidateAllViews(queryClient);
             toast.success("Dataset supprimé");
         },
         onError: (error) => {

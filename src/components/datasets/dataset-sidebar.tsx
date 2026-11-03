@@ -1,38 +1,65 @@
 "use client";
 
+import { useMemo } from "react";
 import {
     Database,
-    Download,
     FileSpreadsheet,
     FileText,
-    HardDrive,
     Upload,
     Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatNumber } from "@/lib/utils/format";
-import type { DatasetStatisticsResponse } from "@/types/dataset";
+import type { DatasetResponse, DatasetStatisticsResponse } from "@/types/dataset";
 
 interface DatasetSidebarProps {
     statistics: DatasetStatisticsResponse | undefined;
+    datasets?: DatasetResponse[];
 }
 
 const RADIUS = 42;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-export function DatasetSidebar({ statistics }: DatasetSidebarProps) {
-    const qualityScore = Math.round(statistics?.averageQualityScore ?? 78);
-    const storagePercent = 62;
-    const storageUsed = "24,8 Go";
-    const storageTotal = "40 Go";
+const FORMAT_STYLES: Record<string, { label: string; color: string }> = {
+    EXCEL: { label: "Excel", color: "bg-hff-blue" },
+    XLSX: { label: "Excel", color: "bg-hff-blue" },
+    CSV: { label: "CSV", color: "bg-success" },
+    SQL: { label: "SQL", color: "bg-purple-500" },
+};
 
-    const offset = CIRCUMFERENCE - (qualityScore / 100) * CIRCUMFERENCE;
-
+export function DatasetSidebar({ statistics, datasets = [] }: DatasetSidebarProps) {
     const total = statistics?.totalDatasets ?? 0;
     const cleaned = statistics?.cleanedDatasets ?? 0;
     const cleanedPercent = total > 0 ? (cleaned / total) * 100 : 0;
+    const qualityScore = Math.round(statistics?.averageQualityScore ?? 0);
+    const hasData = total > 0;
 
     const donutOffset = CIRCUMFERENCE - (cleanedPercent / 100) * CIRCUMFERENCE;
+    const qualityOffset = CIRCUMFERENCE - (qualityScore / 100) * CIRCUMFERENCE;
+
+    const formatBreakdown = useMemo(() => {
+        if (datasets.length === 0) return [];
+        const counts = new Map<string, number>();
+        for (const d of datasets) {
+            const key = d.fileFormat ?? "AUTRES";
+            counts.set(key, (counts.get(key) ?? 0) + 1);
+        }
+        return Array.from(counts.entries())
+            .map(([format, count]) => ({
+                key: format,
+                label: FORMAT_STYLES[format]?.label ?? "Autres",
+                color: FORMAT_STYLES[format]?.color ?? "bg-muted-foreground",
+                percent: Math.round((count / datasets.length) * 100),
+            }))
+            .sort((a, b) => b.percent - a.percent);
+    }, [datasets]);
+
+    const qualityLabel =
+        qualityScore >= 80 ? "Excellent"
+            : qualityScore >= 60 ? "Bon"
+                : qualityScore >= 40 ? "Moyen"
+                    : qualityScore > 0 ? "Faible"
+                        : null;
 
     return (
         <div className="hff-scrollbar flex h-full flex-col gap-4 overflow-auto">
@@ -41,71 +68,72 @@ export function DatasetSidebar({ statistics }: DatasetSidebarProps) {
                     Informations sur les données
                 </h3>
 
-                <div className="mb-4 flex justify-center">
-                    <div className="relative h-32 w-32">
-                        <svg
-                            className="-rotate-90"
-                            width="128"
-                            height="128"
-                            viewBox="0 0 100 100"
-                            fill="none"
-                        >
-                            <circle
-                                cx="50"
-                                cy="50"
-                                r={RADIUS}
-                                stroke="rgba(255,255,255,0.06)"
-                                strokeWidth={10}
-                                className="stroke-muted"
-                            />
-                            <circle
-                                cx="50"
-                                cy="50"
-                                r={RADIUS}
-                                stroke="#1565C0"
-                                strokeWidth={10}
-                                strokeLinecap="round"
-                                strokeDasharray={CIRCUMFERENCE}
-                                strokeDashoffset={donutOffset}
-                                className="transition-all duration-700 ease-out"
-                            />
-                            <circle
-                                cx="50"
-                                cy="50"
-                                r={RADIUS}
-                                stroke="#2E7D32"
-                                strokeWidth={10}
-                                strokeLinecap="round"
-                                strokeDasharray={`${CIRCUMFERENCE * 0.25} ${CIRCUMFERENCE * 0.75}`}
-                                strokeDashoffset={-CIRCUMFERENCE * 0.75}
-                                className="transition-all duration-700 ease-out"
-                            />
-                            <circle
-                                cx="50"
-                                cy="50"
-                                r={RADIUS}
-                                stroke="#FFCD11"
-                                strokeWidth={10}
-                                strokeLinecap="round"
-                                strokeDasharray={`${CIRCUMFERENCE * 0.2} ${CIRCUMFERENCE * 0.8}`}
-                                strokeDashoffset={-CIRCUMFERENCE * 0.5}
-                                className="transition-all duration-700 ease-out"
-                            />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-lg font-bold text-foreground">
-                                {Math.round(cleanedPercent)}%
-                            </span>
+                {hasData ? (
+                    <>
+                        <div className="mb-4 flex justify-center">
+                            <div className="relative h-32 w-32">
+                                <svg
+                                    className="-rotate-90"
+                                    width="128"
+                                    height="128"
+                                    viewBox="0 0 100 100"
+                                    fill="none"
+                                >
+                                    <circle
+                                        cx="50"
+                                        cy="50"
+                                        r={RADIUS}
+                                        strokeWidth={10}
+                                        className="stroke-muted"
+                                    />
+                                    <circle
+                                        cx="50"
+                                        cy="50"
+                                        r={RADIUS}
+                                        stroke="#1565C0"
+                                        strokeWidth={10}
+                                        strokeLinecap="round"
+                                        strokeDasharray={CIRCUMFERENCE}
+                                        strokeDashoffset={donutOffset}
+                                        className="transition-all duration-700 ease-out"
+                                    />
+                                </svg>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <span className="text-lg font-bold text-foreground">
+                                        {Math.round(cleanedPercent)}%
+                                    </span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
 
-                <div className="space-y-2">
-                    <LegendItem color="bg-hff-blue" label="Excel" value={45} />
-                    <LegendItem color="bg-success" label="CSV" value={25} />
-                    <LegendItem color="bg-purple-500" label="SQL" value={20} />
-                    <LegendItem color="bg-muted-foreground" label="Autres" value={10} />
-                </div>
+                        <p className="mb-3 text-center text-[11px] text-muted-foreground">
+                            {formatNumber(cleaned)} / {formatNumber(total)} nettoyés
+                        </p>
+
+                        {formatBreakdown.length > 0 && (
+                            <div className="space-y-2">
+                                {formatBreakdown.map((item) => (
+                                    <LegendItem
+                                        key={item.key}
+                                        color={item.color}
+                                        label={item.label}
+                                        value={item.percent}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-6 text-center">
+                        <Database className="mb-2 h-8 w-8 text-muted-foreground/40" />
+                        <p className="text-xs text-muted-foreground">
+                            Aucune donnée disponible
+                        </p>
+                        <p className="mt-1 text-[10px] text-muted-foreground/70">
+                            Importez un fichier pour voir les statistiques
+                        </p>
+                    </div>
+                )}
             </div>
 
             <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
@@ -113,52 +141,59 @@ export function DatasetSidebar({ statistics }: DatasetSidebarProps) {
                     Qualité moyenne des données
                 </h3>
 
-                <div className="flex items-center gap-4">
-                    <div className="relative h-20 w-20 shrink-0">
-                        <svg
-                            className="-rotate-90"
-                            width="80"
-                            height="80"
-                            viewBox="0 0 100 100"
-                            fill="none"
-                        >
-                            <circle
-                                cx="50"
-                                cy="50"
-                                r={RADIUS}
-                                stroke="currentColor"
-                                strokeWidth={8}
-                                className="text-muted"
-                            />
-                            <circle
-                                cx="50"
-                                cy="50"
-                                r={RADIUS}
-                                stroke="#2E7D32"
-                                strokeWidth={8}
-                                strokeLinecap="round"
-                                strokeDasharray={CIRCUMFERENCE}
-                                strokeDashoffset={offset}
-                                className="transition-all duration-700 ease-out"
-                            />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-base font-bold text-foreground">
-                                {qualityScore}%
-                            </span>
+                {hasData ? (
+                    <div className="flex items-center gap-4">
+                        <div className="relative h-20 w-20 shrink-0">
+                            <svg
+                                className="-rotate-90"
+                                width="80"
+                                height="80"
+                                viewBox="0 0 100 100"
+                                fill="none"
+                            >
+                                <circle
+                                    cx="50"
+                                    cy="50"
+                                    r={RADIUS}
+                                    stroke="currentColor"
+                                    strokeWidth={8}
+                                    className="text-muted"
+                                />
+                                <circle
+                                    cx="50"
+                                    cy="50"
+                                    r={RADIUS}
+                                    stroke="#2E7D32"
+                                    strokeWidth={8}
+                                    strokeLinecap="round"
+                                    strokeDasharray={CIRCUMFERENCE}
+                                    strokeDashoffset={qualityOffset}
+                                    className="transition-all duration-700 ease-out"
+                                />
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-base font-bold text-foreground">
+                                    {qualityScore}%
+                                </span>
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                            <span className="h-2 w-2 rounded-full bg-success" />
-                            <span className="text-sm font-semibold text-success">Bon</span>
-                        </div>
-                        <p className="mt-1 text-[11px] font-medium text-success">
-                            +6% ce mois
-                        </p>
+                        {qualityLabel && (
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="h-2 w-2 rounded-full bg-success" />
+                                    <span className="text-sm font-semibold text-success">
+                                        {qualityLabel}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                </div>
+                ) : (
+                    <p className="py-4 text-center text-xs text-muted-foreground">
+                        Aucune donnée à évaluer
+                    </p>
+                )}
             </div>
 
             <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
@@ -172,33 +207,6 @@ export function DatasetSidebar({ statistics }: DatasetSidebarProps) {
                     <QuickAction icon={Database} label="Créer un jeu de données" />
                     <QuickAction icon={FileText} label="Planifier un import" />
                 </div>
-            </div>
-
-            <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
-                <div className="mb-3 flex items-center gap-2">
-                    <HardDrive className="h-4 w-4 text-hff-yellow" />
-                    <h3 className="text-sm font-semibold text-foreground">
-                        Espace de stockage
-                    </h3>
-                </div>
-
-                <div className="mb-2 flex items-center justify-between text-xs">
-                    <span className="font-medium text-foreground">
-                        {storageUsed} / {storageTotal}
-                    </span>
-                    <span className="font-semibold text-hff-navy">{storagePercent}%</span>
-                </div>
-
-                <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                        className="h-full rounded-full bg-gradient-to-r from-hff-yellow to-hff-yellow/70 transition-all duration-500"
-                        style={{ width: `${storagePercent}%` }}
-                    />
-                </div>
-
-                <button className="mt-3 text-xs font-semibold text-hff-blue transition-colors hover:text-hff-navy">
-                    Gérer le stockage →
-                </button>
             </div>
         </div>
     );

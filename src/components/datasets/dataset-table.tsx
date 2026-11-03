@@ -4,17 +4,24 @@ import {
     Check,
     Database,
     Eye,
+    FileCode,
+    FileJson,
     FileSpreadsheet,
     FileText,
-    FileJson,
-    FileCode,
     MoreVertical,
     Pencil,
     Sparkles,
     Trash2,
     X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils/cn";
+import { formatDate, formatNumber } from "@/lib/utils/format";
+import {
+    PROCESSING_STATUS_LABELS,
+    type DatasetResponse,
+    type FileProcessingStatus,
+    type FileType,
+} from "@/types/dataset";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -23,14 +30,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatDate, formatNumber } from "@/lib/utils/format";
-import { cn } from "@/lib/utils/cn";
-import type {
-    DatasetResponse,
-    FileProcessingStatus,
-    FileType,
-} from "@/types/dataset";
-import { PROCESSING_STATUS_LABELS } from "@/types/dataset";
 
 interface DatasetTableProps {
     datasets: DatasetResponse[];
@@ -87,8 +86,11 @@ const STATUS_ICONS: Record<FileProcessingStatus, typeof Check> = {
 };
 
 function getStatus(dataset: DatasetResponse): FileProcessingStatus {
+    if (dataset.processingStatus === "ERROR") return "ERROR";
+    if (dataset.processingStatus === "ANALYZING") return "ANALYZING";
+    if (dataset.isCleaned) return "CLEANED";
     if (dataset.processingStatus) return dataset.processingStatus;
-    return dataset.isCleaned ? "CLEANED" : "EXPLORED";
+    return "EXPLORED";
 }
 
 function EmptyRow({ index }: { index: number }) {
@@ -302,7 +304,7 @@ export function DatasetTable({
 
                                                 <DropdownMenuSeparator />
 
-                                                {status === "CLEANED" ? (
+                                                {dataset.isCleaned ? (
                                                     <DropdownMenuItem
                                                         onClick={() => onMarkUncleaned?.(dataset)}
                                                         className="cursor-pointer"

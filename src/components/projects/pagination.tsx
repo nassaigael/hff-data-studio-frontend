@@ -9,6 +9,7 @@ interface PaginationProps {
     totalElements: number;
     pageSize: number;
     onPageChange: (page: number) => void;
+    itemLabel?: string;
 }
 
 function getPageNumbers(current: number, total: number): (number | string)[] {
@@ -39,6 +40,7 @@ export function Pagination({
     totalElements,
     pageSize,
     onPageChange,
+    itemLabel = "éléments",
 }: PaginationProps) {
     const startIndex = currentPage * pageSize + 1;
     const endIndex = Math.min((currentPage + 1) * pageSize, totalElements);
@@ -48,7 +50,7 @@ export function Pagination({
     return (
         <div className="flex items-center gap-3">
             <p className="hidden text-xs text-muted-foreground md:block">
-                Affichage de {startIndex} à {endIndex} sur {totalElements} projets
+                Affichage de {startIndex} à {endIndex} sur {totalElements} {itemLabel}
             </p>
 
             <div className="flex items-center gap-1">
