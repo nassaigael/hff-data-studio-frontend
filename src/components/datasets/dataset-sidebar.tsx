@@ -25,6 +25,7 @@ const FORMAT_STYLES: Record<string, { label: string; color: string }> = {
     XLSX: { label: "Excel", color: "bg-hff-blue" },
     CSV: { label: "CSV", color: "bg-success" },
     SQL: { label: "SQL", color: "bg-purple-500" },
+    JSON: { label: "JSON", color: "bg-orange-500" },
 };
 
 export function DatasetSidebar({ statistics, datasets = [] }: DatasetSidebarProps) {
